@@ -1,0 +1,9 @@
+{
+    "name" : "CS:3820 F22 Project 1",
+    "image" : "docker.io/jgbm/cs3820:2022-08-11",
+    "extensions" : ["haskell.haskell", "eamodio.gitlens"],
+    "workspaceMount": "source=${localWorkspaceFolder},target=/home/vscode/p1,type=bind,consistency=delegated",
+    "workspaceFolder": "/home/vscode/p1",
+
+    "remoteUser": "vscode"
+}

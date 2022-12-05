@@ -1,0 +1,23 @@
+{
+  "tests": [
+    {"name" : "Test case [487]: (begin 1 2 3)", "setup" : "", "run" : "cabal run Test 487", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [488]: (begin)", "setup" : "", "run" : "cabal run Test 488", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [489]: (let* [(x 1)] (begin (set! x 5) x))", "setup" : "", "run" : "cabal run Test 489", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [490]: (let* [(x 1) (y 2)] (begin (set! x (+ y y)) x))", "setup" : "", "run" : "cabal run Test 490", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [491]: (let* [(x 1)] (begin (set! x (+ x x)) x))", "setup" : "", "run" : "cabal run Test 491", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [492]: (let* [(x 1)] (list (let* [(x 2)] (begin (set! x 5) x)) x))", "setup" : "", "run" : "cabal run Test 492", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [493]: (begin (set! x 2) x)", "setup" : "", "run" : "cabal run Test 493", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [494]: ((lambda (x) (begin (set! x 5) x)) 1)", "setup" : "", "run" : "cabal run Test 494", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [495]: ((lambda (x y) (begin (set! y 2) (list x y))) 1 1)", "setup" : "", "run" : "cabal run Test 495", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [496]: ((lambda (x) (begin (set! x (+ x x)) x)) 2)", "setup" : "", "run" : "cabal run Test 496", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [497]: ((lambda (x) (list ((lambda (x) (begin (set! x 5) x)) x) x)) 1)", "setup" : "", "run" : "cabal run Test 497", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [498]: ((lambda (x) (begin (set! y x) y)) 1)", "setup" : "", "run" : "cabal run Test 498", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [499]: (begin (define x 5) x)", "setup" : "", "run" : "cabal run Test 499", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [500]: (begin (define x 1) (define y (+ x x)) y)", "setup" : "", "run" : "cabal run Test 500", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [501]: (let* [(x 1)] (begin (define y (+ x x)) (list x y)))", "setup" : "", "run" : "cabal run Test 501", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [502]: (let* [(y 1)] (list (let* [(x 1)] (begin (define y (+ x x)) y)) y))", "setup" : "", "run" : "cabal run Test 502", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [503]: ((lambda (x) (begin (define y (+ x x)) y)) 1)", "setup" : "", "run" : "cabal run Test 503", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [504]: ((lambda (x) (begin (define x 5) x)) 1)", "setup" : "", "run" : "cabal run Test 504", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 },
+    {"name" : "Test case [505]: ((lambda (x) (begin (define x (+ x x)) x)) 1)", "setup" : "", "run" : "cabal run Test 505", "input" : "", "output" : "", "comparison" : "included", "timeout" : 0.5, "points" : 1 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+    "haskell.toolchain": {
+        "ghc" : "9.2.2",
+        "cabal" : "3.6.2",
+        "hls" : "1.7",
+        "stack" : null
+    }
+
+}
