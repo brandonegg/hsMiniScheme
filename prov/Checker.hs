@@ -71,6 +71,15 @@ snd' x = proper [symbol "snd" , x]
 applyImplicit :: SchemeData a => a -> [a] -> a
 applyImplicit f xs = proper (f:xs)
 
+begin :: SchemeData a => [a] -> a
+begin es = proper (symbol "begin" : es)
+
+setb :: SchemeData a => a -> a -> a
+setb v e = proper [symbol "set!", v, e]
+
+def :: SchemeData a => a -> a -> a
+def v e = proper [symbol "define", v, e]
+
 ---------------------------------------------------------------------------------
 -- Testing requires access to a source of randomness
 

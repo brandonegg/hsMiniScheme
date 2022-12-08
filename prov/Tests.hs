@@ -8,10 +8,13 @@ import System.Random (getStdGen, mkStdGen)
 import Test.HUnit
 
 import Checker
-import Data.List (partition, intercalate)
+import Data.List (partition, intercalate, elemIndex)
+import Data.Maybe (fromJust)
 import Interface
 import ChallengeTests
 import Text.Read (readMaybe)
+
+import Debug.Trace
 
 type TestCases = [TC]
 
@@ -652,12 +655,8 @@ letStarLambdaRTests :: Int -> Int -> TestCases
 letStarLambdaRTests n m =
   (replicate n $
     "let* with lambda, where the second uses the first" ~~
-    do fs :: [String] <- pickSymbolsUnique 2
-       xs :: [String] <- pickSymbolsUnique 1
-       ys :: [String] <- pickSymbolsUnique 2
-       let [f1,f2] = fs
-       let [x1] = xs
-       let [y1,y2] = ys
+    do allVs <- pickSymbolsUnique 5
+       let [f1,f2,x1,y1,y2] = allVs
        let bind1 :: (String,String) = (f1 , lambda [x1] (applyImplicit (symbol "*") [x1,x1]))
        let bind2 :: (String,String) =
              (f2 , lambda [y1,y2]
@@ -847,6 +846,161 @@ defineTests =
     , TC ("((lambda (x) (begin (define x (+ x x)) x)) 1)", Just "2")
     ]
 
+-- #############################################################################
+-- Project 3 randomized tests
+-- #############################################################################
+
+pickPureArithExpr :: SchemeData a => Int -> [(a, Integer)] -> TestM (a, Integer)
+pickPureArithExpr 0 atoms
+    | not (null atoms) = pickFrom [ do n <- pick [-5..5]
+                                       return (number n, n)
+                                  , pick atoms ]
+    | otherwise = do n <- pick [-5..5]
+                     return (number n, n)
+pickPureArithExpr depth atoms = pickFrom [ pickPureArithExpr 0 atoms
+                                         , do nArgs <- pick [2..5]
+                                              (args, vals) <- unzip <$> replicateM nArgs (pickPureArithExpr (depth - 1) atoms)
+                                              return (proper (symbol "+" : args), sum vals) ]
+
+beginPureExpressions :: Int -> TestCases
+beginPureExpressions n =
+    replicate n $
+    "begin, with pure expressions" ~~
+    do m <- pick [1..4]
+       (es, vs) <- unzip <$> replicateM m (pickPureArithExpr 1 [])
+       return (begin es, Just (number $ last vs))
+
+update :: Int -> a -> [a] -> [a]
+update 0 r (_ : vs) = r : vs
+update n r (v : vs) = v : update (n - 1) r vs
+
+setBangLetStar :: Int -> Bool -> Bool -> Bool -> TestCases
+setBangLetStar nTests bodyNested bindingsPure withDefines =
+  replicate nTests $
+  description ~~
+  do nLets <- if bodyNested then pick [1..4] else return 1
+     (e, v, _) <- build nLets [] []
+     return (e, Just (number v))
+  where description = "set!s inside " ++ (if bodyNested then "many" else "one") ++
+                      " let*s, bindings " ++ (if bindingsPure then "pure" else "impure") ++
+                      if withDefines then " with defines" else ""
+
+        build :: Int -> [String] -> [Integer] -> TestM (String, Integer, [Integer])
+        build 0 vars vals =
+            do nSets           <- pick [1..2]
+               nDefs           <- if withDefines then pick [1..2] else return 0
+               defSyms         <- replicateM nDefs pickSymbol
+               (ds, vals')     <- defines defSyms vars vals
+               (es, v, vals'') <- setBangs nSets (reverse defSyms ++ vars) vals'
+               return (begin (ds ++ es), v, drop nDefs vals'')
+        build n vars vals =
+            do nBinds         <- pick [1..2]
+               vars'          <- pickSymbolsUnique nBinds
+               (binds, vals') <- setBangss n vars' vars vals
+               let (es, vs)   = unzip binds
+               (e, v, vals'') <- build (n - 1) (vars' ++ vars) (vs ++ vals')
+               return (llet (zip vars' es) e, v, drop nBinds vals'')
+
+        pure :: [String] -> [Integer] -> TestM (String, Integer)
+        pure vars vals = pickPureArithExpr 1 (zip vars (map (\v -> fromJust $ lookup v (zip vars vals)) vars))
+
+        builds :: Int -> [String] -> [String] -> [Integer] -> TestM ([String], [Integer])
+        builds depth [] vars vals =
+            return ([], vals)
+        builds depth (nv : newVars) vars vals =
+            do (e, v, vals') <- build depth vars vals
+               (es, vals'') <- builds depth newVars (nv : vars) (v : vals')
+               return ( e : es, vals'')
+
+        setBangss :: Int -> [String] -> [String] -> [Integer] -> TestM ([(String, Integer)], [Integer])
+
+        setBangss _ [] _ vals =
+            return ([], vals)
+
+        setBangss depth (newV : newVs) vars vals =
+            do m <- if null vars then return 0 else pick [0..3]
+               (e, v, vals') <- if bindingsPure || null vars
+                                then do (e, v) <- pure vars vals
+                                        return (e, v, vals)
+                                else build (depth - 1) vars vals
+                                     -- do (es, v, vals') <- -setBangs m vars vals
+                                     --    return (begin es, v, vals')
+               (rest, vals'') <- setBangss depth newVs (newV : vars) (v : vals')
+               return ((e, head vals'') : rest, tail vals'')
+
+        setBangs :: Int -> [String] -> [Integer] -> TestM ([String], Integer, [Integer])
+
+        setBangs 0 vars vals =
+            do (e, v) <- pure vars vals
+               return ([e], v, vals)
+
+        setBangs n vars vals =
+            do var              <- pick vars
+               (e, v)           <- pure vars vals
+               let vals'        = update (fromJust $ elemIndex var vars) v vals
+               (es, v', vals'') <- setBangs (n - 1) vars vals'
+               return (setb var e : es, v', vals'')
+
+        defines :: [String] -> [String] -> [Integer] -> TestM ([String], [Integer])
+
+        defines [] _ vals =
+            return ([], vals)
+
+        defines (newVar : newVars) vars vals =
+            do (es, v, vals') <- setBangs 2 vars vals
+               (rest, vals'') <- defines newVars (newVar : vars) (v : vals')
+               return (def newVar (begin es) : rest, vals'')
+
+setters :: Int -> Bool -> Bool -> TestCases
+setters n defineVars defineSetters =
+    replicate n $
+    ("set!s in functions" ++
+     (if defineVars then ", variables introduced by define" else "") ++
+     (if defineSetters then ", setters introduced by define" else "")) ~~
+    do nVars <- pick [1..4]
+       nSetters <- pick [1..4]
+       allVars <- pickSymbolsUnique (nVars + nSetters + 1)
+       let vars        = take nVars allVars
+           setterNames = take nSetters (drop nVars allVars)
+           lamVar      = last allVars
+       (es, vals) <- unzip <$> replicateM nVars (pickPureArithExpr 1 [])
+       (fes, fs)  <- unzip <$> replicateM nSetters (buildSetter lamVar vars)
+       invocations <- pick [4..8]
+       (calls, vals') <- callSetters invocations (zip setterNames fs) vars vals
+       let body = (begin (calls ++ [proper (symbol "+" : map number vals')]))
+           withSetters
+               | defineSetters = begin (zipWith def setterNames fes ++ [body])
+               | otherwise     = llet (zip setterNames fes) body
+           withVars
+               | defineVars = begin (zipWith def vars es ++ [withSetters])
+               | otherwise  = llet (zip vars es) withSetters
+       return ( withVars
+              , Just (number (sum vals'))
+              )
+    where buildSetter :: String -> [String] -> TestM (String, Integer -> [Integer] -> [Integer])
+          buildSetter lamVar vars =
+            do n <- pick [-5..5]
+               src <- pick [0..length vars - 1]
+               tgt <- pick [0..length vars - 1]
+               return ( proper [ "lambda"
+                               , proper [lamVar]
+                               , begin
+                                   [ setb (vars !! tgt) (proper [symbol "+", symbol (vars !! src), symbol lamVar, number n])
+                                   , number 0
+                                   ] ]
+                      , \x xs -> update tgt (xs !! src + x + n) xs
+                      )
+
+          callSetters :: Int -> [(String, Integer -> [Integer] -> [Integer])] -> [String] -> [Integer] -> TestM ([String], [Integer])
+          callSetters 0 _setters _vars vals =
+              return ([], vals)
+          callSetters n setters vars vals =
+              do (fn, f) <- pick setters
+                 arg     <- pick [0..length vars - 1]
+                 let vals' = f (vals !! arg) vals
+                 (es, vals'') <- callSetters (n - 1) setters vars vals'
+                 return (proper [symbol fn, symbol (vars !! arg)] : es, vals'')
+
 --------------------------------------------------------------------------------
 
 buildTests :: [(Int, TC)] -> IO Test
@@ -882,7 +1036,15 @@ p2RTests = concat
 
 p3Tests = concat [beginTests, setBangTests, defineTests]
 
-p1Start, p1End, c1Start, c1End, p2Start, p2End :: Int
+p3RTests = concat
+           [ beginPureExpressions 10
+           , setBangLetStar 10 False True False, setBangLetStar 10 True True False, setBangLetStar 20 True False False
+           , setBangLetStar 10 True False True
+           , setters 10 False False, setters 10 True False, setters 10 True True
+           ]
+
+p1Start, p1End, c1Start, c1End, p2Start, p2End, p2RStart, p2REnd, c2Start, c2End,
+  p3Start, p3End, p3RStart, p3REnd :: Int
 p1Start = 0
 p1End   = length p1Tests
 c1Start = p1End
@@ -895,8 +1057,10 @@ c2Start = p2REnd
 c2End = c2Start + length c2Tests
 p3Start = c2End
 p3End = p3Start + length p3Tests
+p3RStart = p3End
+p3REnd = p3RStart + length p3RTests
 
-allTests = zip [0..] $ concat [p1Tests, c1Tests, p2Tests, p2RTests, c2Tests, p3Tests]
+allTests = zip [0..] $ concat [p1Tests, c1Tests, p2Tests, p2RTests, c2Tests, p3Tests, p3RTests]
 
 testSets =
     [ ("p1", [p1Start, p1End])
@@ -904,7 +1068,8 @@ testSets =
     , ("p2", [p2Start, p2End])
     , ("p2r", [p2RStart, p2REnd])
     , ("c2", [c2Start, c2End])
-    , ("p3", [p3Start, p3End]) ]
+    , ("p3", [p3Start, p3End])
+    , ("p3r", [p3RStart, p3REnd]) ]
 
 main :: IO ()
 main = do allArgs <- getArgs
