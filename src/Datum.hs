@@ -110,6 +110,9 @@ assign s d = modify (\env -> (assign_helper s d (head env)) : env)
   where assign_helper :: String -> Datum -> [(String, Datum)] -> [(String, Datum)]
         assign_helper sym val curEnv = (sym, val) : curEnv
 
+pushEnv :: [(String, Datum)] -> Result ()
+pushEnv newEnv = modify (\env -> newEnv : env)
+
 -- Temporarily extend the environment
 -- TODO: This probably needs to me where the pop/push functionality of the environment stack will go.
 temporary :: Result a -> Result a

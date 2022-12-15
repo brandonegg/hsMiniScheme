@@ -400,3 +400,8 @@ test d = fmap printDatum (eval_either (parse d))
 -- Of course, you can compose these two to get `test`.
 -- `test` parses a string and then evaluates it.
 -- >>> test "(if (eq? 1 2) #t #f)"
+
+-- >>> test "(let* ([x 1]) x)"
+-- Right "1"
+--
+
