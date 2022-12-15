@@ -320,7 +320,7 @@ primHandler "apply" (x : xs) = do
 primHandler s xs = argsBorked s xs
 
 primOps :: Env
-primOps = map (\ s -> (s, PrimOp s (\ ds -> primHandler s ds))) primitives
+primOps = [map (\ s -> (s, PrimOp s (\ ds -> primHandler s ds))) primitives]
 
 -- =============================================================================
 -- Evaluation

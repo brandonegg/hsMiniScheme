@@ -83,7 +83,7 @@ instance Show Datum where
 
 data Error =  Error String
 
-type Env = [(String, Datum)]
+type Env = [[(String, Datum)]]
 type Result a = StateT Env (Either Error) a
     
 instance Show Error where
@@ -97,15 +97,21 @@ instance MonadFail (Either Error)
 
 lookupEnv :: String -> Result Datum
 lookupEnv s = do
-  x <- gets (lookup s)
+  x <- gets (lookupNested s)
   case x of
     Nothing -> notInEnv s
     Just v  -> return v
+  where lookupNested :: Eq a => a -> [[(a, b)]] -> Maybe b
+        lookupNested str [] = Nothing
+        lookupNested str (x:xs) = lookup str x
 
 assign :: String -> Datum -> Result ()
-assign s d = modify (\env -> (s, d) : env)
+assign s d = modify (\env -> (assign_helper s d (head env)) : env)
+  where assign_helper :: String -> Datum -> [(String, Datum)] -> [(String, Datum)]
+        assign_helper sym val curEnv = (sym, val) : curEnv
 
 -- Temporarily extend the environment
+-- TODO: This probably needs to me where the pop/push functionality of the environment stack will go.
 temporary :: Result a -> Result a
 temporary m = do
   old <- get
