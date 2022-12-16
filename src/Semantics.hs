@@ -53,7 +53,7 @@ truthy _             = True
 -- =============================================================================
 
 specialForms :: [String]
-specialForms = ["if", "cond", "and", "or", "let*", "lambda", "begin", "set!"]
+specialForms = ["if", "cond", "and", "or", "let*", "lambda", "begin", "set!", "define"]
 
 isSpecialForm :: String -> Bool
 isSpecialForm s = s `elem` specialForms
@@ -216,6 +216,18 @@ specialFormHandler "set!" [symbol, body, Nil] = handleSet symbol body
         parseSymbol (Symbol str) = return str
         parseSymbol _ = fail "Unable to find symbol for set!"
 
+specialFormHandler "define" [symbol, body, Nil] = handleSet symbol body
+  where handleSet :: Datum -> Datum -> Result Datum
+        handleSet symbol body = do
+          e' <- eval body
+          s <- parseSymbol symbol
+          assign s e'
+          return Nil
+
+        parseSymbol :: Datum -> Result String
+        parseSymbol (Symbol str) = return str
+        parseSymbol _ = fail "Unable to find symbol for set!"
+
 -- P3 NEW: Begin
 specialFormHandler "begin" xs = handleBegin xs
   where handleBegin :: [Datum] -> Result Datum
@@ -227,6 +239,8 @@ specialFormHandler "begin" xs = handleBegin xs
             any -> handleBegin xs
     
 specialFormHandler s xs = argsBorked s xs
+
+-- test "(begin (define x 5) x)"
 
 -- =============================================================================
 -- Evaluating primitives
