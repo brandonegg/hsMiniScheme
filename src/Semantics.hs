@@ -229,7 +229,7 @@ specialFormHandler "define" [symbol, body, Nil] = handleSet symbol body
         parseSymbol _ = fail "Unable to find symbol for set!"
 
 -- P3 NEW: Begin
-specialFormHandler "begin" xs = handleBegin xs
+specialFormHandler "begin" xs = temporary (handleBegin xs)
   where handleBegin :: [Datum] -> Result Datum
         handleBegin (x : xs) = do
           x <- eval x
@@ -241,6 +241,15 @@ specialFormHandler "begin" xs = handleBegin xs
 specialFormHandler s xs = argsBorked s xs
 
 -- test "(begin (define x 5) x)"
+
+-- (let* ((V0 (+ -5 -2 2 0))) (let* ((v0 (let* ((moG0 (begin (set! V0 V0) -5)) (ix1 (begin (set! moG0 moG0) moG0))) (begin (set! V0 (+ V0 V0 2 ix1)) (+ 3 0 -4 -3 -5))))) (let* ((XmL0 (begin (set! v0 -5) (set! v0 (+ -1 4 -2 -5)) (+ v0 -2 -1)))) (begin (set! XmL0 V0) (set! V0 v0) (+ V0 3 XmL0 -4)))))
+-- >>> test "(let* ((x (+ 2 2))) (let* ((y 5)) x"
+-- Right "9"
+--
+
+-- >>> test "(let* ((x 2)) (let* ((y (begin (set! x 1)))) x))"
+-- Left Error: "Tried to look up let in environment, but couldn't find it."
+--
 
 -- =============================================================================
 -- Evaluating primitives
@@ -437,8 +446,3 @@ test d = fmap printDatum (eval_either (parse d))
 -- Of course, you can compose these two to get `test`.
 -- `test` parses a string and then evaluates it.
 -- >>> test "(if (eq? 1 2) #t #f)"
-
--- >>> test "(let* ([x 1]) x)"
--- Right "1"
---
-
