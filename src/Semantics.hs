@@ -237,7 +237,7 @@ specialFormHandler "begin" xs = handleBegin xs
             [] -> invalidArg "begin" (x : xs)
             [Nil] -> return x
             any -> handleBegin xs
-    
+
 specialFormHandler s xs = argsBorked s xs
 
 -- =============================================================================
