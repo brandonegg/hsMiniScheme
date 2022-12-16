@@ -53,7 +53,7 @@ truthy _             = True
 -- =============================================================================
 
 specialForms :: [String]
-specialForms = ["if", "cond", "and", "or", "let*", "lambda", "begin"]
+specialForms = ["if", "cond", "and", "or", "let*", "lambda", "begin", "set!"]
 
 isSpecialForm :: String -> Bool
 isSpecialForm s = s `elem` specialForms
@@ -202,15 +202,29 @@ specialFormHandler "lambda" [vs@(Cons _ _), body, Nil] =
             eval body
       | otherwise               = invalidArg "lambda" xs
 
+-- Variable must be defined in environment for set! to work!
+specialFormHandler "set!" [symbol, body, Nil] = handleSet symbol body
+  where handleSet :: Datum -> Datum -> Result Datum
+        handleSet symbol body = do
+          e' <- eval body
+          s <- parseSymbol symbol
+          lookupEnv s -- Check if symbol exists
+          assign s e'
+          return Nil
+
+        parseSymbol :: Datum -> Result String
+        parseSymbol (Symbol str) = return str
+        parseSymbol _ = fail "Unable to find symbol for set!"
 
 -- P3 NEW: Begin
-specialFormHandler "begin" (cur : next) = handleBegin cur next
-  where handleBegin :: Datum -> [Datum] -> Result Datum
-        handleBegin cur n = do
-          case n of
-            [] -> invalidArg "begin" n
-            [Nil] -> eval cur
-            any -> handleBegin (head any) (tail any)
+specialFormHandler "begin" xs = handleBegin xs
+  where handleBegin :: [Datum] -> Result Datum
+        handleBegin (x : xs) = do
+          x <- eval x
+          case xs of
+            [] -> invalidArg "begin" (x : xs)
+            [Nil] -> return x
+            any -> handleBegin xs
     
 specialFormHandler s xs = argsBorked s xs
 
