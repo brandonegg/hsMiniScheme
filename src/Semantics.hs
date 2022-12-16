@@ -53,7 +53,7 @@ truthy _             = True
 -- =============================================================================
 
 specialForms :: [String]
-specialForms = ["if", "cond", "and", "or", "let*", "lambda"]
+specialForms = ["if", "cond", "and", "or", "let*", "lambda", "begin"]
 
 isSpecialForm :: String -> Bool
 isSpecialForm s = s `elem` specialForms
@@ -202,7 +202,16 @@ specialFormHandler "lambda" [vs@(Cons _ _), body, Nil] =
             eval body
       | otherwise               = invalidArg "lambda" xs
 
-     
+
+-- P3 NEW: Begin
+specialFormHandler "begin" (cur : next) = handleBegin cur next
+  where handleBegin :: Datum -> [Datum] -> Result Datum
+        handleBegin cur n = do
+          case n of
+            [] -> invalidArg "begin" n
+            [Nil] -> eval cur
+            any -> handleBegin (head any) (tail any)
+    
 specialFormHandler s xs = argsBorked s xs
 
 -- =============================================================================
