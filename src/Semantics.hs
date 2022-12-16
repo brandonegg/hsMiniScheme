@@ -229,7 +229,7 @@ specialFormHandler "define" [symbol, body, Nil] = handleSet symbol body
         parseSymbol _ = fail "Unable to find symbol for set!"
 
 -- P3 NEW: Begin
-specialFormHandler "begin" xs = handleBegin xs
+specialFormHandler "begin" xs = beginEnv (handleBegin xs)
   where handleBegin :: [Datum] -> Result Datum
         handleBegin (x : xs) = do
           x <- eval x

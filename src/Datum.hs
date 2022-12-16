@@ -118,6 +118,22 @@ temporary m = do
   result <- m
   put old
   return result
+
+beginEnv :: Result a -> Result a
+beginEnv m = do
+  old <- get
+  put (head old : old)
+  result <- m -- run evaluater
+  cur <- get
+  put ((mergeEnvs (head old) (head cur)) : tail old)
+  return result
+
+  where mergeEnvs :: [(String, Datum)] -> [(String, Datum)] -> [(String, Datum)]
+        mergeEnvs [] new = []
+        mergeEnvs ((s, d) : remain) new = (s, getLookupVal (lookup s new)) : (mergeEnvs remain new)
+  
+        getLookupVal :: Maybe b -> b
+        getLookupVal (Just val) = val
     
 -- --------------------------------------------------------------------------------
 -- -- smart constructors, which take the regular old values (Int, String, Bool)
